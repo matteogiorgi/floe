@@ -38,7 +38,7 @@
 #define BORDER_WIDTH  2         /* window border thickness, in pixels */
 #define COL_FOCUS     0x5f87af  /* border color of the focused window (0xRRGGBB) */
 #define COL_NORMAL    0x222222  /* border color of every other window */
-static const char *termcmd[] = { "xterm", NULL };  /* argv for Alt+Shift+Return */
+static const char *termcmd[] = { "xterm", NULL };       /* argv for Alt+Shift+Return */
 
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -67,6 +67,12 @@ static int wm_detected = 0;
 
 /* sentinel for the main event loop; set to 0 by the quit keybinding */
 static int running = 1;
+
+/* bit of the modifier state that corresponds to NumLock on this keyboard,
+ * computed once in update_numlockmask(). Needed because XGrabKey/XGrabButton
+ * match an exact modifier state: without accounting for it, every binding
+ * would silently stop working the moment NumLock is toggled on. */
+static unsigned int numlockmask = 0;
 
 
 /* Launch cmd as a detached child process (used for the terminal keybinding).
@@ -169,22 +175,54 @@ static void close_window(Window w)
 }
 
 
+/* Find which modifier bit (Mod1Mask..Mod5Mask, or none) the X server has
+ * NumLock bound to on this keyboard, and cache it in numlockmask. Xlib
+ * exposes the keyboard's modifier table as 8 columns (Shift, Lock,
+ * Control, Mod1..Mod5), each listing the keycodes bound to it; we just
+ * scan every column for the keycode NumLock is on. */
+static void update_numlockmask(void)
+{
+    unsigned int i, j;
+    XModifierKeymap *modmap;
+    KeyCode numlock_kc = XKeysymToKeycode(dpy, XK_Num_Lock);
+
+    numlockmask = 0;
+    modmap = XGetModifierMapping(dpy);
+    for (i = 0; i < 8; i++)
+        for (j = 0; j < (unsigned int) modmap->max_keypermod; j++)
+            if (modmap->modifiermap[i * modmap->max_keypermod + j] == numlock_kc)
+                numlockmask = 1 << i;
+    XFreeModifiermap(modmap);
+}
+
+
 /* Register every keyboard/mouse binding floe reacts to. These are
  * "passive grabs": we tell the X server up front which key/button
  * combinations we want reported to us (as KeyPress/ButtonPress events on
  * the root window) instead of being delivered straight to the client
  * under the pointer. This is the mechanism behind every global shortcut
  * in this WM; there is no separate keybinding table to maintain, this
- * function IS the table. */
+ * function IS the table.
+ *
+ * XGrabKey/XGrabButton match an *exact* modifier state, and NumLock/
+ * CapsLock/ScrollLock show up in that state like any other modifier. So a
+ * grab for just MOD|ShiftMask only fires while every lock key happens to
+ * be off. We work around this the way dwm does: grab each binding once
+ * per combination of "real" modifiers and lock modifiers, so the lock
+ * keys' state is simply irrelevant to whether a shortcut fires. */
 static void grab(void)
 {
-    unsigned m = MOD | ShiftMask;
+    unsigned int i;
+    unsigned int m = MOD | ShiftMask;
+    unsigned int locks[] = { 0, LockMask, numlockmask, numlockmask | LockMask };
 
-    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_Return), m, root, True, GrabModeAsync, GrabModeAsync);
-    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_c), m, root, True, GrabModeAsync, GrabModeAsync);
-    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_q), m, root, True, GrabModeAsync, GrabModeAsync);
-    XGrabButton(dpy, 1, MOD, root, True, ButtonPressMask, GrabModeAsync, GrabModeAsync, None, None);
-    XGrabButton(dpy, 3, MOD, root, True, ButtonPressMask, GrabModeAsync, GrabModeAsync, None, None);
+    for (i = 0; i < sizeof(locks) / sizeof(locks[0]); i++) {
+        XGrabKey(dpy, XKeysymToKeycode(dpy, XK_Return), m | locks[i], root, True, GrabModeAsync, GrabModeAsync);
+        XGrabKey(dpy, XKeysymToKeycode(dpy, XK_c), m | locks[i], root, True, GrabModeAsync, GrabModeAsync);
+        XGrabKey(dpy, XKeysymToKeycode(dpy, XK_q), m | locks[i], root, True, GrabModeAsync, GrabModeAsync);
+        XGrabButton(dpy, 1, MOD | locks[i], root, True, ButtonPressMask, GrabModeAsync, GrabModeAsync, None, None);
+        XGrabButton(dpy, 3, MOD | locks[i], root, True, ButtonPressMask, GrabModeAsync, GrabModeAsync, None, None);
+    }
 }
 
 
@@ -214,6 +252,7 @@ int main(void)
         return EXIT_FAILURE;
     }
     XSetErrorHandler(on_x_error);
+    update_numlockmask();
     grab();
 
     /* The event loop is the whole program: floe does nothing until the X

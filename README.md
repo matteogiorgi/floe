@@ -2,6 +2,8 @@
 
 FloeWM is one C file (`floe.c`) using Xlib directly, no config file, no external dependencies beyond Xlib itself. Windows float where their client (or the user) places them — there is no tiling layout to compute or maintain, which is what keeps the whole program small enough to read start to finish in a few minutes.
 
+![FloeWM desktop screenshot](scrot.png)
+
 
 
 
@@ -135,11 +137,29 @@ FloeWM doesn't speak EWMH yet (see Known limitations / TODO below), so panels an
 
 
 
+## Troubleshooting
+
+### Shortcuts don't work / I can't spawn a terminal or quit
+
+The near-certain cause is **NumLock** (or CapsLock/ScrollLock) being on at login: X key grabs match an exact modifier state, so a lock key being active changes that state and every Alt+Shift shortcut silently stops firing. FloeWM already grabs each binding across every combination of lock modifiers (see `update_numlockmask()`/`grab()` in `floe.c`), so a build from source after that fix was added should not have this problem; if it still does, double check you rebuilt and reinstalled (`make && sudo make install`) after pulling the latest source.
+
+### I'm stuck in a FloeWM session with no way out
+
+Switch to a text console with `Ctrl+Alt+F2` (try `F1` through `F6` if that doesn't work) and log in there, then end the FloeWM process from the shell:
+
+```
+pkill -u "$USER" floe
+```
+
+The X session waiting on FloeWM exits along with it, and the display manager should return to the login screen. Switch back to the graphical console (often `Ctrl+Alt+F7` or `F1`) if it doesn't happen automatically.
+
+
+
+
 ## Known limitations (left out on purpose)
 
 FloeWM optimizes for a small, readable core over feature completeness. Left out deliberately, in rough order of how likely they are to bite:
 
-- **No NumLock/CapsLock-aware key grabs.** Shortcuts are grabbed for the exact `Mod1|Shift` combination, so they won't fire while NumLock (or another lock modifier) is active. Fixing this means re-grabbing every binding once per lock-modifier combination (dwm does this in about 15 lines).
 - **Assumes a TrueColor default visual.** Border colors are set as raw `0xRRGGBB` pixel values, which only works directly on a TrueColor visual. Fine on virtually every modern setup, but not portable to a palette-based visual.
 - **No EWMH (`_NET_*`) support.** FloeWM doesn't announce itself or a window list via the EWMH properties, so external panels, task bars, and tools like `wmctrl` won't see or control it.
 
@@ -148,7 +168,6 @@ FloeWM optimizes for a small, readable core over feature completeness. Left out 
 
 ## TODO
 
-- [ ] NumLock/CapsLock-aware key grabs, so shortcuts fire regardless of lock-modifier state.
 - [ ] Basic EWMH (`_NET_*`) support, so panels, task bars, and `wmctrl` can see and interact with FloeWM.
 - [ ] Recognize windows that shouldn't be treated like ordinary top-level windows — dialogs/popups via `_NET_WM_WINDOW_TYPE`, `WM_NORMAL_HINTS` size hints, and override-redirect windows (menus, tooltips) that must be left untouched.
 - [ ] Refactor the core around a small set of internal commands (focus, close, spawn, move, resize, quit) exposed over a socket, bspwm-style, so the WM itself stays a mute core driven by an external client.
