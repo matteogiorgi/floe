@@ -2,7 +2,7 @@
 
 FloeWM is one C file (`floe.c`) using Xlib directly, no config file, no external dependencies beyond Xlib itself. Windows float where their client (or the user) places them — there is no tiling layout to compute or maintain, which is what keeps the whole program small enough to read start to finish in a few minutes.
 
-<img src="scrot.png" alt="FloeWM desktop screenshot" width="100%">
+<img class="hero-gif" src="scrot.png" alt="FloeWM desktop screenshot" width="100%" />
 
 
 
