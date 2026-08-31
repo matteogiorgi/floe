@@ -2,7 +2,7 @@
 
 FloeWM is one C file (`floe.c`) using Xlib directly, no config file, no external dependencies beyond Xlib itself. Windows float where their client (or the user) places them — there is no tiling layout to compute or maintain, which is what keeps the whole program small enough to read start to finish in a few minutes.
 
-![FloeWM desktop screenshot](scrot.png)
+<img src="scrot.png" alt="FloeWM desktop screenshot" width="100%">
 
 
 
@@ -168,6 +168,7 @@ FloeWM optimizes for a small, readable core over feature completeness. Left out 
 
 ## TODO
 
+- [x] NumLock/CapsLock-aware key grabs, so shortcuts fire regardless of lock-modifier state.
 - [ ] Basic EWMH (`_NET_*`) support, so panels, task bars, and `wmctrl` can see and interact with FloeWM.
 - [ ] Recognize windows that shouldn't be treated like ordinary top-level windows — dialogs/popups via `_NET_WM_WINDOW_TYPE`, `WM_NORMAL_HINTS` size hints, and override-redirect windows (menus, tooltips) that must be left untouched.
 - [ ] Refactor the core around a small set of internal commands (focus, close, spawn, move, resize, quit) exposed over a socket, bspwm-style, so the WM itself stays a mute core driven by an external client.
