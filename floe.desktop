@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=FloeWM
+Comment=Minimal floating window manager for X11
+Exec=floe
+TryExec=floe
+Type=Application
+DesktopNames=FloeWM

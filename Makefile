@@ -1,7 +1,8 @@
-CC     ?= cc
-CFLAGS ?= -Os -Wall -Wextra
-LDLIBS  = -lX11
-PREFIX ?= /usr/local
+CC           ?= cc
+CFLAGS       ?= -Os -Wall -Wextra
+LDLIBS        = -lX11
+PREFIX       ?= /usr/local
+XSESSIONSDIR ?= /usr/share/xsessions
 
 all: floe
 
@@ -13,5 +14,10 @@ clean:
 
 install: floe
 	install -Dm755 floe $(DESTDIR)$(PREFIX)/bin/floe
+	install -Dm644 floe.desktop $(DESTDIR)$(XSESSIONSDIR)/floe.desktop
 
-.PHONY: all clean install
+uninstall:
+	rm -f $(DESTDIR)$(PREFIX)/bin/floe
+	rm -f $(DESTDIR)$(XSESSIONSDIR)/floe.desktop
+
+.PHONY: all clean install uninstall

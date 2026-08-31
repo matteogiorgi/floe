@@ -42,9 +42,12 @@ This produces a `floe` binary in the project directory.
 Other targets:
 
 ```
-make clean    # remove the built binary
-make install  # install to $PREFIX/bin (default /usr/local), use DESTDIR/PREFIX to override
+make clean      # remove the built binary
+make install    # install the binary and the xsessions entry, see Autostart below
+make uninstall  # remove everything make install put in place
 ```
+
+`install`/`uninstall` accept `DESTDIR`, `PREFIX` (default `/usr/local`, where the binary goes) and `XSESSIONSDIR` (default `/usr/share/xsessions`, where the session entry described in Autostart goes) to override the destination, e.g. `make install PREFIX=$HOME/.local`.
 
 
 
@@ -76,7 +79,7 @@ DISPLAY=:1 ./floe &
 DISPLAY=:1 xterm &
 ```
 
-To make it your actual session's window manager, launch it from your `.xinitrc`/`.xsession` (or, on a desktop like XFCE, disable the default WM's autostart and start `floe` instead — see your desktop environment's session settings).
+See Autostart below for making FloeWM your actual login session.
 
 
 ### Keybindings
@@ -90,6 +93,44 @@ To make it your actual session's window manager, launch it from your `.xinitrc`/
 | `Alt` + drag (button 3) | resize the window under the pointer |
 
 Focus follows the mouse: moving the pointer into a window focuses it.
+
+
+
+
+## Autostart
+
+How to make FloeWM start automatically depends on how you log in.
+
+
+### With a display manager (LightDM, GDM, SDDM, …)
+
+`make install` installs `floe.desktop` into `/usr/share/xsessions/` alongside the binary, so most display managers pick it up automatically:
+
+```
+sudo make install
+```
+
+"FloeWM" then shows up as a session choice on the login screen (usually a small menu next to the password field) — select it before logging in.
+
+
+### With `startx`/`xinit` (no display manager)
+
+Add FloeWM as the last line of `~/.xinitrc`. It must be run with `exec`, not backgrounded with `&`, so the X session ends when FloeWM quits rather than immediately:
+
+```
+exec floe
+```
+
+Then start the session as usual:
+
+```
+startx
+```
+
+
+### Inside an existing desktop session
+
+FloeWM doesn't speak EWMH yet (see Known limitations / TODO below), so panels and other components of a full desktop environment that expect a compliant window manager may not fully cooperate with it if you swap it in for their own WM (e.g. in place of `xfwm4` under XFCE). Until that lands, the two options above — running FloeWM as its own standalone session — are the ones actually worth using.
 
 
 
